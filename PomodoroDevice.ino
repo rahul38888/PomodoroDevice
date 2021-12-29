@@ -113,12 +113,12 @@ int secToTime(int secs){
   return mins*100 + remSecs;
 }
 
-//int pomodoroSecs[8] = {
-//  1500, 300, 1500, 300, 1500, 300, 1500, 900
-//};
 int pomodoroSecs[8] = {
-  10, 5, 10, 5, 10, 5, 10, 6
+  1500, 300, 1500, 300, 1500, 300, 1500, 900
 };
+//int pomodoroSecs[8] = {
+//  10, 5, 10, 5, 10, 5, 10, 6
+//};
 
 bool isWorkState[8] = {
   true, false, true, false, true, false, true, false
