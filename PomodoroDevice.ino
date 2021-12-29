@@ -3,17 +3,24 @@ int D2 = 3;
 int D3 = 4;
 int D4 = 5;
 
-
 int dataPin = 11;
 int latchPin = 8;
 int clockPin = 12;
 
+int buzzerPin = 6;
+
+int buttonPin = 7;
+
+int stateLedPin = 9;
+
+// ----- ^^ PINS ^^ -----
+
 int delayTime = 4;
+int buzzerFrequency = 523;
 
 int nums[10] = {
   1, 79, 18, 6, 76, 36, 32, 15, 0, 4
 };
-
 int blanckNum = 127;
 
 void updateShiftRegisterState(byte input){
@@ -106,19 +113,30 @@ int secToTime(int secs){
   return mins*100 + remSecs;
 }
 
-int curSecs = 110;
+//int pomodoroSecs[8] = {
+//  1500, 300, 1500, 300, 1500, 300, 1500, 900
+//};
+int pomodoroSecs[8] = {
+  10, 5, 10, 5, 10, 5, 10, 6
+};
 
-int maxSecs = 120;
+bool isWorkState[8] = {
+  true, false, true, false, true, false, true, false
+};
+
+int curPomodoro = 0;
+
+int curSecs = -1;
 
 //  0 -> Timer running, 1 -> end of last timer
-int deviceState = 0;
-
 int TIMER_STATE = 0;
 int TIMER_END = 1;
 
-void resetTimer(int newMaxSecs){
+int deviceState = TIMER_STATE;
+
+void resetTimer(){
   curSecs = 0;
-  maxSecs = newMaxSecs;
+  curPomodoro = (curPomodoro+1)%8;
 }
 
 unsigned long nextMillis = 0;
@@ -129,34 +147,49 @@ int setNextMillis(int gap){
 }
 
 int timerRunner(){
-  if(curSecs <= maxSecs){
+  if(curSecs <= pomodoroSecs[curPomodoro]){
     if(millis() > nextMillis){
       curSecs++;
       setNextMillis(1000);
     }
+
+    digitalWrite(stateLedPin, isWorkState[curPomodoro]);
     
     drawNumber(secToTime(curSecs));
     return TIMER_STATE;
   }
   else{
+    resetTimer();
     return TIMER_END;
   }
 }
 
-bool isEndDisplayOn = true;
+bool enderOn = true;
 int timerEnderProgramm(){
+
+  int buttonState = digitalRead(buttonPin);
+  
+  if(buttonState == HIGH){
+    noTone(buzzerPin);
+    return TIMER_STATE;
+  }
+  
+  digitalWrite(stateLedPin, isWorkState[curPomodoro]);
 
   if(millis() > nextMillis){
     setNextMillis(500);
-    isEndDisplayOn = !isEndDisplayOn;
+    enderOn = !enderOn;
   }
 
-  if(isEndDisplayOn){
-    drawNumber(secToTime(60));
+  if(enderOn){
+    drawNumber(secToTime(pomodoroSecs[curPomodoro]));
+    tone(buzzerPin, buzzerFrequency);
   }
   else{
     drawNumber(-1);
+    noTone(buzzerPin);
   }
+  return TIMER_END;
 }
 
 void setup() {
@@ -171,6 +204,11 @@ void setup() {
   pinMode(latchPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
 
+  pinMode(buzzerPin, OUTPUT);
+
+  pinMode(buttonPin, INPUT);
+
+  pinMode(stateLedPin, OUTPUT);
 }
 
 void loop() {
