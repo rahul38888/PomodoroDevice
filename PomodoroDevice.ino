@@ -192,7 +192,6 @@ int timerEnderProgramm(){
   return TIMER_END;
 }
 
-
 void setup() {
   Serial.begin(9600);
   
