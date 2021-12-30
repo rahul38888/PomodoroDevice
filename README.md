@@ -61,6 +61,7 @@
 **74HC595** need to have 8 bits written into it. The 1st place bit will decide state of **DP**. That is being added on runtime.
 
 ## Circuit diagrams
-![Part 1](https://github.com/rahul38888/PomodoroDevice/blob/212a2f60e181cde1be968482e51b95f507a27bd9/Media/Circuit%20Diagram%20part%201.png)
+![Part 1](https://github.com/rahul38888/PomodoroDevice/blob/f902cd65b5d4c69a42b6a12e2fa3e9859cad900e/Media/Circuit%20Diagram%20part%201.png)
 
 ![Part 2](https://github.com/rahul38888/PomodoroDevice/blob/212a2f60e181cde1be968482e51b95f507a27bd9/Media/Circuit%20Diagram%20part%202.png)
+
