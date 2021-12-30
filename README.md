@@ -1,19 +1,18 @@
 # PomodoroDevice
 
-## 4 x 7 segments display
-### 7 segments leds
+## 7 segments leds
 
 ![7 segments led names](https://github.com/rahul38888/PomodoroDevice/blob/520fe267d27aa2939a2c743a77cb05a0f6bb5576/Media/7_Segments_led_names.png)
 
-### 4x7 segment display pinout diagram
+## 4x7 segment display pinout diagram
 
 ![4x7 segment display pinout diagram](https://github.com/rahul38888/PomodoroDevice/blob/520fe267d27aa2939a2c743a77cb05a0f6bb5576/Media/4-x-7-segment-LED-display-pinout.png)
 
-### Shift register 74HC595
+## Shift register 74HC595
 
 ![Shift register 74HC595](https://github.com/rahul38888/PomodoroDevice/blob/91ebc1411ede8d5e7a9827ac29af66c1e5a37e6d/Media/74HC595_pin_diagram.png)
 
-### Pins connections
+## Pins connections
 | 4x7 pins | Arduino pins |
 |-|-|
 |D1 (Through 220 Ω)|2|
@@ -42,7 +41,7 @@
 |12|SH_CP|
 |5V|MR|
 
-### Bytes to Character mapping
+## Bytes to Character mapping
 |Character|Byte value (ABCDEFG)|Integer value|
 |-|-|-|
 |0|0000001|1|
@@ -60,3 +59,8 @@
 1 means inactive and 0 means active.
 
 **74HC595** need to have 8 bits written into it. The 1st place bit will decide state of **DP**. That is being added on runtime.
+
+## Circuit diagrams
+![Part 1](https://github.com/rahul38888/PomodoroDevice/blob/212a2f60e181cde1be968482e51b95f507a27bd9/Media/Circuit%20Diagram%20part%201.png)
+
+![Part 2](https://github.com/rahul38888/PomodoroDevice/blob/212a2f60e181cde1be968482e51b95f507a27bd9/Media/Circuit%20Diagram%20part%202.png)
