@@ -22,6 +22,7 @@ int nums[10] = {
   1, 79, 18, 6, 76, 36, 32, 15, 0, 4
 };
 int blanckNum = 127;
+int pLetter = 24;
 
 void updateShiftRegisterState(byte input){
   digitalWrite(latchPin, LOW);
@@ -38,13 +39,13 @@ void draw(int state, bool enableDecimal){
   updateShiftRegisterState(leds);
 }
 
-void reset(){
-  digitalWrite(D1, LOW);
-  digitalWrite(D2, LOW);
-  digitalWrite(D3, LOW);
-  digitalWrite(D4, LOW);
+void resetTo(int letter, int dState){
+  digitalWrite(D1, dState);
+  digitalWrite(D2, dState);
+  digitalWrite(D3, dState);
+  digitalWrite(D4, dState);
   
-  draw(blanckNum, false);
+  draw(letter, false);
 }
 
 void setDigit(int d1, int d2, int d3, int d4){
@@ -71,8 +72,12 @@ void setD4() {
 }
 
 void drawNumber(int num){
-  if(num < 0){
-    reset();
+  if(num == -1){
+    resetTo(blanckNum, LOW);
+    return;
+  }
+  else if(num == -2){
+    resetTo(pLetter, HIGH);
     return;
   }
 
@@ -102,7 +107,7 @@ void drawNumber(int num){
     }
     draw(nums[dig], enableDecimal);
     delay(delayTime);
-    reset();
+    resetTo(blanckNum, LOW);
   }
 }
 
@@ -128,11 +133,14 @@ int curPomodoro = 0;
 
 int curSecs = -1;
 
-//  0 -> Timer running, 1 -> end of last timer
+int STOP_SIGNAL = -2;
+int WELCOME_STATE = -1;
 int TIMER_STATE = 0;
 int TIMER_END = 1;
+int TIMER_PAUSED = 2;
+int SKIP_SIGNAL = 3;
 
-int deviceState = TIMER_STATE;
+int deviceState = WELCOME_STATE;
 
 void resetTimer(){
   curSecs = 0;
@@ -146,7 +154,88 @@ int setNextMillis(int gap){
     nextMillis = nextMillis - nextMillis%100;
 }
 
+int lastButtonState = LOW;
+int curButtonState;
+unsigned long debounceDelay = 50;
+unsigned long lastDebounceTime  = 0;
+unsigned long buttonDownMillis = 0;
+
+unsigned long longPressTime = 1000;
+unsigned long stopPressTime = 3000;
+
+unsigned long isButtonPressed(){
+  unsigned long pressTime = 0;
+  
+  int buttonState = digitalRead(buttonPin);
+
+  if(lastButtonState != buttonState)
+    lastDebounceTime = millis();
+
+  if((millis() - lastDebounceTime) > debounceDelay)
+    if(buttonState != curButtonState){
+      curButtonState = buttonState;
+      
+      if(curButtonState == HIGH)
+         buttonDownMillis = millis();
+      if(curButtonState == LOW)
+        pressTime = millis() - buttonDownMillis;
+    }
+
+  lastButtonState = buttonState;
+  return pressTime;
+}
+
+bool disOn = true;
+
+void resetDevice(){
+  curSecs = -1;
+  curPomodoro = 0;
+}
+
+int timerPaused(){
+  unsigned long buttonMillis = isButtonPressed();
+  if(buttonMillis>stopPressTime){
+    drawNumber(-1);
+    noTone(buzzerPin);
+    resetDevice();
+    return STOP_SIGNAL;
+  }
+  else if(buttonMillis>longPressTime)
+    return SKIP_SIGNAL;
+  else if(buttonMillis)
+    return TIMER_STATE;
+  
+  if(millis() > nextMillis){
+    setNextMillis(500);
+    disOn = !disOn;
+  }
+
+  if(disOn)
+    drawNumber(secToTime(curSecs));
+  else
+    drawNumber(-1);
+
+  return TIMER_PAUSED;
+
+}
+
 int timerRunner(){
+
+  unsigned long buttonMillis = isButtonPressed();
+  if(buttonMillis>stopPressTime){
+    drawNumber(-1);
+    noTone(buzzerPin);
+    resetDevice();
+    return STOP_SIGNAL;
+  }
+  else if(buttonMillis>longPressTime)
+    return SKIP_SIGNAL;
+  else if(buttonMillis) {
+    tone(buzzerPin, buzzerFrequency);
+    noTone(buzzerPin);
+    return TIMER_PAUSED;
+  }
+  
   if(curSecs <= pomodoroSecs[curPomodoro]){
     if(millis() > nextMillis){
       curSecs++;
@@ -164,12 +253,17 @@ int timerRunner(){
   }
 }
 
-bool enderOn = true;
 int timerEnderProgramm(){
-
-  int buttonState = digitalRead(buttonPin);
-  
-  if(buttonState == HIGH){
+  unsigned long buttonMillis = isButtonPressed();
+  if(buttonMillis>stopPressTime){
+    drawNumber(-1);
+    noTone(buzzerPin);
+    resetDevice();
+    return STOP_SIGNAL;
+  }
+  else if(buttonMillis > longPressTime)
+    return SKIP_SIGNAL;
+  else if(buttonMillis){
     noTone(buzzerPin);
     return TIMER_STATE;
   }
@@ -178,10 +272,10 @@ int timerEnderProgramm(){
 
   if(millis() > nextMillis){
     setNextMillis(500);
-    enderOn = !enderOn;
+    disOn = !disOn;
   }
 
-  if(enderOn){
+  if(disOn){
     drawNumber(secToTime(pomodoroSecs[curPomodoro]));
     tone(buzzerPin, buzzerFrequency);
   }
@@ -192,9 +286,49 @@ int timerEnderProgramm(){
   return TIMER_END;
 }
 
-void setup() {
-  Serial.begin(9600);
+int skipCurrentTimer(){
+    resetTimer();
+    return TIMER_END;
+}
+
+
+unsigned long welcomeTomeLength = 2000;
+unsigned long startMillis = 0;
+int welcomeProgramm(){
+  if(millis()-startMillis<=welcomeTomeLength){
+    tone(buzzerPin, buzzerFrequency);
+  }
+  else
+    noTone(buzzerPin);
   
+  unsigned long buttonMillis = isButtonPressed();
+  if(buttonMillis>stopPressTime){
+    drawNumber(-1);
+    noTone(buzzerPin);
+    resetDevice();
+    return STOP_SIGNAL;
+  }
+  else if(buttonMillis){
+    pinMode(stateLedPin, OUTPUT);
+    noTone(buzzerPin);
+    return TIMER_STATE;
+  }
+  
+  drawNumber(-2);
+  return WELCOME_STATE;
+}
+
+int doNothing(){
+  pinMode(stateLedPin, INPUT);
+  if(isButtonPressed()){
+    startMillis = millis();
+    return WELCOME_STATE;
+  }
+
+  return STOP_SIGNAL;
+}
+
+void setup() {
   pinMode(D1, OUTPUT);
   pinMode(D2, OUTPUT);
   pinMode(D3, OUTPUT);
@@ -208,14 +342,21 @@ void setup() {
 
   pinMode(buttonPin, INPUT);
 
-  pinMode(stateLedPin, OUTPUT);
+  pinMode(stateLedPin, INPUT);
 }
 
 void loop() {
-  if(deviceState == TIMER_STATE){
+  if(deviceState == STOP_SIGNAL)
+    deviceState = doNothing();
+  else if(deviceState == WELCOME_STATE)
+    deviceState = welcomeProgramm();
+  else if(deviceState == TIMER_STATE)
     deviceState = timerRunner();
-  }
-  else if(deviceState == TIMER_END){
+  else if(deviceState == TIMER_PAUSED)
+    deviceState = timerPaused();
+  else if(deviceState == TIMER_END)
     deviceState = timerEnderProgramm();
-  }
+  else if(deviceState == SKIP_SIGNAL)
+    deviceState = skipCurrentTimer();
+  
 }
